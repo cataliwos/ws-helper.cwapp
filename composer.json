@@ -4,7 +4,7 @@
   "keywords": ["helper", "functions", "variable", "cws", "catali", "web", "store"],
   "homepage": "https://github.com/cataliwos/ws-helper.cwapp",
   "type": "library",
-  "license": "",
+  "license": "MIT",
   "authors": [
     {
       "name": "Ikechukwu Okalia",
