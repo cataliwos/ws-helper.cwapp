@@ -1,0 +1,41 @@
+{
+  "name": "cataliwos/ws-helper.cwapp",
+  "description": "Web Store Helper",
+  "keywords": ["helper", "functions", "variable", "cws", "catali", "web", "store"],
+  "homepage": "https://github.com/cataliwos/ws-helper.cwapp",
+  "type": "library",
+  "license": "",
+  "authors": [
+    {
+      "name": "Ikechukwu Okalia",
+      "email": "dev@ikechukwuokalia.com"
+    },
+    {
+      "name": "Tym Frontiers Ltd.",
+      "email": "dev@tymfrontiers.com"
+    }
+  ],
+  "require": {
+    "tymfrontiers-cdn/php-data" : ">=0.1@stable",
+    "tymfrontiers-cdn/php-mysql-database" : ">=0.1@stable",
+    "tymfrontiers-cdn/php-mysql-database-object" : ">=0.1@stable",
+    "tymfrontiers-cdn/php-instance-error" : ">=0.1@stable",
+    "tymfrontiers-cdn/php-validator" : ">=0.1@stable",
+    "tymfrontiers-cdn/php-generic" : ">=0.1@stable",
+    "tymfrontiers-cdn/php-multiform" : ">=0.1@stable"
+  },
+  "require-dev": {},
+  "autoload": {
+    "psr-4": {
+      "Catali\\": "src/",
+      "Catali\\Helper\\": "src/"
+    },
+    "files" : [
+      "src/Vars.php",
+      "src/Constants.php",
+      "src/Functions.php"
+    ]
+  },
+  "repositories" : [
+  ]
+}
