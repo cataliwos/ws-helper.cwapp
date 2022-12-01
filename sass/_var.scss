@@ -1,0 +1,8 @@
+@if variable-exists("bg-color") == false {
+  $bg-color: "#FBB304";
+}
+@if variable-exists("fg-color") == false {
+  $fg-color: "#000";
+}
+$body-bgc: #DBDBDC;
+$text-color: #231F20;
