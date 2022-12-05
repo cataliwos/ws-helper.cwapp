@@ -1,8 +1,7 @@
-@if variable-exists("bg-color") == false {
-  $bg-color: "#FBB304";
-}
-@if variable-exists("fg-color") == false {
-  $fg-color: "#000";
+@if global-variable-exists(bg-color) == false {
+  $bg-color: #FBB304 !global;
+} @if variable-exists(fg-color) == null {
+  $fg-color: #000 !global;
 }
 $body-bgc: #DBDBDC;
 $text-color: #231F20;
