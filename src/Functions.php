@@ -272,7 +272,7 @@ function wsowner (string $wsid = "", int $id_type = WSID_WSCODE):object|null {
   $db_name = \get_database("base", "CWS");
   $data_db = \get_database("data", "CWS");
   $ent_db = \get_database("enterprise", "CWS");
-  $conn = new MySQLDatabase($db_server, $db_user[0], $db_user[1], $db_name);
+  $conn = new MySQLDatabase($db_server, $db_user[0], $db_user[1], $db_name, true);
   if (!$conn || !$conn instanceof MySQLDatabase) {
     throw new \Exception("Server connection failed", 1);
   }
@@ -309,7 +309,7 @@ function wsowner (string $wsid = "", int $id_type = WSID_WSCODE):object|null {
                 )
                 LIMIT 1")) {
     $user = $user[0];
-    $conn->closeConnection();
+    // $conn->closeConnection();
 
     return (object) [
       "wscode" => $user->code,
@@ -342,12 +342,19 @@ function wsowner (string $wsid = "", int $id_type = WSID_WSCODE):object|null {
   return null;
 }
 function checkws () {
-  $wsowner = wsowner();
-  if (!$wsowner || \in_array($wsowner->status, ["BANNED", "SUSPENDED", "DISABLED"])) {
-    Header::badRequest(true, "This web store cannot be viewed at this time. If you are the owner; kindly contact admin/support.");
+  // check every 14 minutes
+  $ck_name = "_wsinfstat";
+  if (!isset($_COOKIE[$ck_name])) {
+    // create cookie and redirect
+    $wsinfo = wsinfo();
+    if (!$wsinfo || \in_array($wsinfo->status, ["BANNED", "SUSPENDED", "DISABLED"])) {
+      Header::badRequest(true, "WS: This web store cannot be viewed at this time. If you are the owner; kindly contact admin/support.");
+    }
+    $wsowner = wsowner();
+    if (!$wsowner || \in_array($wsowner->status, ["BANNED", "SUSPENDED", "DISABLED"])) {
+      Header::badRequest(true, "This web store cannot be viewed at this time. If you are the owner; kindly contact admin/support.");
+    }
+    \setcookie($ck_name, 1, \strtotime("+14 Minutes"), "/", get_constant("PRJ_DOMAIN"), false, true);
   }
-  $wsinfo = wsinfo();
-  if (!$wsinfo || \in_array($wsinfo->status, ["BANNED", "SUSPENDED", "DISABLED"])) {
-    Header::badRequest(true, "WS: This web store cannot be viewed at this time. If you are the owner; kindly contact admin/support.");
-  }
+
 }
