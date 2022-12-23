@@ -177,11 +177,12 @@ function wsinfo (string $wsid = "", int $id_type = WSID_WSCODE):object|null {
   } if (!\in_array($id_type,[WSID_WSCODE, WSID_DOMAIN, WSID_EMAIL])) {
     throw new \Exception("Invalid ID type given in: \$param: 2", 1);
   }
-  global $database;
+  $server_name = get_constant("PRJ_SERVER_NAME");
+  $conn = \query_conn($server_name);
   global $color_theme;
   global $session;
   global $access_ranks;
-  $wsid = $database->escapeValue($wsid);
+  $wsid = $conn->escapeValue($wsid);
   $data_db = \get_database("data");
   $cnd = "";
   switch ($id_type) {
@@ -198,7 +199,7 @@ function wsinfo (string $wsid = "", int $id_type = WSID_WSCODE):object|null {
       $cnd = " AND ws.`code` = '{$wsid}' ";
       break;
   }
-  $wsobj = new MultiForm(\get_database("enterprise"), "ws", "code");
+  $wsobj = new MultiForm(\get_database("enterprise"), "ws", "code", $conn);
   if ($found = $wsobj->findBySql("SELECT ws.code, ws.published, ws.status, ws.domain, ws.email, 
                         ws.owner, ws.`type`, ws.category, ws.subcategory, ws.`name`, 
                         ws.acronym, ws.description, ws.keywords, ws.brand_color, 
@@ -215,6 +216,7 @@ function wsinfo (string $wsid = "", int $id_type = WSID_WSCODE):object|null {
                 LIMIT 1")
   ) {
     $found = $found[0];
+    $conn->closeConnection();
     return (object) [
       "wscode" => $found->code,
       "published" => (bool)$found->published,
@@ -267,12 +269,10 @@ function wsowner (string $wsid = "", int $id_type = WSID_WSCODE):object|null {
   } if (!\in_array($id_type,[WSID_WSCODE, WSID_DOMAIN, WSID_EMAIL])) {
     throw new \Exception("Invalid ID type given in: \$param: 2", 1);
   }
-  $db_user = \get_dbuser("CWS");
-  $db_server = \get_dbserver("CWS");
   $db_name = \get_database("base", "CWS");
   $data_db = \get_database("data", "CWS");
   $ent_db = \get_database("enterprise", "CWS");
-  $conn = new MySQLDatabase($db_server, $db_user[0], $db_user[1], $db_name, true);
+  $conn = \query_conn("CWS");
   if (!$conn || !$conn instanceof MySQLDatabase) {
     throw new \Exception("Server connection failed", 1);
   }
@@ -309,7 +309,7 @@ function wsowner (string $wsid = "", int $id_type = WSID_WSCODE):object|null {
                 )
                 LIMIT 1")) {
     $user = $user[0];
-    // $conn->closeConnection();
+    $conn->closeConnection();
 
     return (object) [
       "wscode" => $user->code,
@@ -345,15 +345,15 @@ function checkws () {
   // check every 14 minutes
   $ck_name = "_wsinfstat";
   if (!isset($_COOKIE[$ck_name])) {
-    // create cookie and redirect
-    $wsinfo = wsinfo();
-    if (!$wsinfo || \in_array($wsinfo->status, ["BANNED", "SUSPENDED", "DISABLED"])) {
-      Header::badRequest(true, "WS: This web store cannot be viewed at this time. If you are the owner; kindly contact admin/support.");
-    }
     $wsowner = wsowner();
     if (!$wsowner || \in_array($wsowner->status, ["BANNED", "SUSPENDED", "DISABLED"])) {
       Header::badRequest(true, "This web store cannot be viewed at this time. If you are the owner; kindly contact admin/support.");
     }
+    $wsinfo = wsinfo();
+    if (!$wsinfo || \in_array($wsinfo->status, ["BANNED", "SUSPENDED", "DISABLED"])) {
+      Header::badRequest(true, "WS: This web store cannot be viewed at this time. If you are the owner; kindly contact admin/support.");
+    }
+    // create cookie
     \setcookie($ck_name, 1, \strtotime("+14 Minutes"), "/", get_constant("PRJ_DOMAIN"), false, true);
   }
 
