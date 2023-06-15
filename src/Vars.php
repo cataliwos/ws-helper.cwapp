@@ -2,12 +2,14 @@
 namespace Catali;
 global $access_ranks,
        $reverse_access_ranks,
+       $email_replace_pattern,
        $file_upload_groups,
-       $mysql_datetime_string,
+       $api_sign_patterns,
+       $mysql_dt_string,
+       $mysql_date_string,
        $renewal_terms,
        $renewal_options,
        $color_theme,
-       $cryptos,
        $recur_terms,
        $priority_titles,
        $currency_symbols;
@@ -159,16 +161,14 @@ $currency_symbols =  [
   'YER' => '﷼',
   'ZWD' => 'Z$'
 ];
-$cryptos = [
-  "BTC" => "Bitcoin",
-  "ETH" => "Ethereum",
-  "BNB" => "Binance Coin",
-  "SOL" => "Solana",
-  "ADA" => "Cardano",
-  "DOGE" => "Dogecoin",
-  "XRP" => "XRP"
+$api_sign_patterns = [
+  "/path/to/request" => [
+    "var1", "var2", "var3" // in order of inclusion
+  ]
 ];
-$mysql_datetime_string = "Y-m-d H:i:s";
+// payment variables
+$mysql_dt_string = "Y-m-d H:i:s";
+$mysql_date_string = "Y-m-d";
 
 $recur_terms = [
   "OFF" => [
@@ -179,55 +179,55 @@ $recur_terms = [
   ],
   "DAILY" => [
     "title" => "Daily",
-    "due" => \date($mysql_datetime_string, \strtotime("+1 Day")),
+    "due" => \date($mysql_dt_string, \strtotime("+1 Day")),
     "divider" => 24,
     "divider_comment" => "Per Hour"
   ],
   "WEEKLY" => [
     "title" => "Weekly",
-    "due" => \date($mysql_datetime_string, \strtotime("+1 Week")),
+    "due" => \date($mysql_dt_string, \strtotime("+1 Week")),
     "divider" => 7,
     "divider_comment" => "Per Day"
   ],
   "MONTHLY" => [
     "title" => "Monthly",
-    "due" => \date($mysql_datetime_string, \strtotime("+1 Month")),
+    "due" => \date($mysql_dt_string, \strtotime("+1 Month")),
     "divider" => 1,
     "divider_comment" => ""
   ],
   "QUARTERLY" => [
     "title" => "Every 3 Months",
-    "due" => \date($mysql_datetime_string, \strtotime("+3 Months")),
+    "due" => \date($mysql_dt_string, \strtotime("+3 Months")),
     "divider" => 3,
     "divider_comment" => "Per Month"
   ],
   "BIANNUAL" => [
     "title" => "Every 6 Months",
-    "due" => \date($mysql_datetime_string, \strtotime("+6 Months")),
+    "due" => \date($mysql_dt_string, \strtotime("+6 Months")),
     "divider" => 6,
     "divider_comment" => "Per Month"
   ],
   "YEARLY" => [
     "title" => "Yearly",
-    "due" => \date($mysql_datetime_string, \strtotime("+1 Year")),
+    "due" => \date($mysql_dt_string, \strtotime("+1 Year")),
     "divider" => 12,
     "divider_comment" => "Per Month"
   ],
   "BIYEARLY" => [
     "title" => "Every 2 Years",
-    "due" => \date($mysql_datetime_string, \strtotime("+2 Years")),
+    "due" => \date($mysql_dt_string, \strtotime("+2 Years")),
     "divider" => 24,
     "divider_comment" => "Per Month"
   ]
 ];
 $renewal_terms = [
   "ONEOFF" => NULL,
-  "WEEKLY" => \date($mysql_datetime_string, \strtotime("+1 Week")),
-  "MONTHLY" => \date($mysql_datetime_string, \strtotime("+1 Month")),
-  "QUARTERLY" => \date($mysql_datetime_string, \strtotime("+3 Months")),
-  "BIYEARLY" => \date($mysql_datetime_string, \strtotime("+6 Months")),
-  "YEARLY" => \date($mysql_datetime_string, \strtotime("+1 Year")),
-  "18MONTHS" => \date($mysql_datetime_string, \strtotime("+18 Months"))
+  "WEEKLY" => \date($mysql_dt_string, \strtotime("+1 Week")),
+  "MONTHLY" => \date($mysql_dt_string, \strtotime("+1 Month")),
+  "QUARTERLY" => \date($mysql_dt_string, \strtotime("+3 Months")),
+  "BIYEARLY" => \date($mysql_dt_string, \strtotime("+6 Months")),
+  "YEARLY" => \date($mysql_dt_string, \strtotime("+1 Year")),
+  "18MONTHS" => \date($mysql_dt_string, \strtotime("+18 Months"))
 ];
 $renewal_options = [
   "ONEOFF" => "One-Time - No renewal needed",
