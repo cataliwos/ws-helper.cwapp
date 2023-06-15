@@ -1,0 +1,54 @@
+@use "sass:map";
+
+$theme-colors : (
+  'native'          : (bg : #1976D2, fg : #ffffff),
+  'gold'            : (bg : #EBBD63, fg : #000),
+  'rose-gold'       : (bg : #FDD09F, fg : #000),
+  'red'             : (bg : #F44336, fg : #ffffff),
+  'blue'            : (bg : #2196F3, fg : #ffffff),
+  'light-blue'      : (bg : #03A9F4, fg : #ffffff),
+  'midnight-blue'   : (bg : #2c3e50, fg : #ffffff),
+  'blue-grey'       : (bg : #607D8B, fg : #ffffff),
+  'grey'            : (bg: #9E9E9E, fg: #000),
+  'green'           : (bg : #4CAF50, fg : #ffffff),
+  'nigeria-green'   : (bg : #008751, fg : #ffffff),
+  'light-green'     : (bg : #8BC34A, fg : #000),
+  'green-sea'       : (bg : #16a085, fg : #ffffff),
+  'yellow'          : (bg : #FFEB3B, fg : #000),
+  'amber'           : (bg : #FFC107, fg : #000),
+  'asphalt'         : (bg : #34495e, fg : #ffffff),
+  'silver'          : (bg : #bdc3c7, fg : #000),
+  'cloud'           : (bg : #ecf0f1, fg : #000),
+  'pink'            : (bg : #E91E63, fg : #ffffff),
+  'purple'          : (bg : #9C27B0, fg : #ffffff),
+  'deep-purple'     : (bg : #673AB7, fg : #ffffff),
+  'olive'           : (bg : #808000, fg : #ffffff),
+  'indigo'          : (bg : #3F51B5, fg : #ffffff),
+  'cyan'            : (bg : #00BCD4, fg : #ffffff),
+  'teal'            : (bg : #009688, fg : #ffffff),
+  'lime'            : (bg : #CDDC39, fg : #000),
+  'carrot'          : (bg : #e67e22, fg : #ffffff),
+  'pumpkin'         : (bg : #d35400, fg : #ffffff),
+  'coffee'          : (bg : #45362E, fg : #ffffff),
+  'orange'          : (bg : #FF9800, fg : #000),
+  'deep-orange'     : (bg : #FF5722, fg : #ffffff),
+  'brown'           : (bg : #795548, fg : #ffffff),
+  'black'           : (bg : #000,    fg : #ffffff),
+  'cloud-blue'      : (bg : #d6e0eb, fg : #2c3e50),
+  'vimeo'           : (bg : #1AB7EA, fg : #ffffff),
+  'youtube'         : (bg : #DC4A38, fg : #ffffff),
+  'facebook'        : (bg : #3B5998, fg : #ffffff),
+  'twitter'         : (bg : #28A9E0, fg : #ffffff),
+  'transparent'     : (light : rgba(242,242,242,0.75), dark : rgba(0,0,0,0.55))
+);
+$none-theme-color: 'transparent', 'cloud', 'silver', 'cloud-blue';
+$bright-colors: 'yellow', 'lime', 'cyan', 'rose-gold', 'light-green';
+$dark-colors: 'black', 'asphalt';
+
+@function theme-color($color, $key) {
+  $ret : map.get($theme-colors, $color);
+  @if $ret {
+    $ret : map.get($ret, $key);
+  }
+	@return $ret;
+}

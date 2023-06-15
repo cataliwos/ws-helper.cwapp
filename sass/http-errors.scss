@@ -1,0 +1,64 @@
+@use "sass:math";
+@use "sass:list";
+
+@import "../../../../base-color";
+@import "./colors";
+@import "./var";
+@import "./fn";
+
+#err-page-foot{
+  position: fixed;
+  left: 0; bottom: 0;
+  width: 100%;
+  margin: 0; padding: 0;
+  #ft-credit{
+    position: relative;
+    margin-top: 60px;
+    background: darken($body-bgc,12%);
+    font-size: 0.85em;
+    color: darken($bg-color, 7%);
+    padding: 14px;
+    .ft-site{
+      background: darken($body-bgc,12%);
+      position: absolute;
+      color: $text-color;
+      padding: 14px 28px;
+      @include -br(14px, '-top-right');
+      top: -15px; left: 0;
+    }
+  }
+}
+#err-page-head{
+  position: relative;
+  padding: 21px 28px;
+  #site-logo{
+    position: relative;
+    img{
+      height: 45px;
+      width: auto;
+    }
+  }
+}
+
+.http-error-info{
+  position: relative;
+  color: lighten(theme-color('grey', bg),7%);
+  .status-code{
+    font-size: 2em;
+    font-weight: bold;
+  }
+}
+.error-art{
+  img{
+    height: 180px;
+    width: auto;
+  }
+}
+.error-art-mob{
+  float: right;
+  margin: 0 0 12px 12px;
+  img{
+    height: 100px;
+    width: auto;
+  }
+}
