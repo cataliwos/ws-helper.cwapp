@@ -27,7 +27,6 @@ $page_name = "404";
     <link rel="stylesheet" href="/app/cataliwos/plugin.cwapp/css/font-awesome.min.css">
     <link rel="stylesheet" href="/app/cataliwos/plugin.cwapp/css/theme.min.css">
     <!-- Project styling -->
-    <link rel="stylesheet" href="/assets/css/base.min.css">
     <link rel="stylesheet" href="/app/cataliwos/ws-helper.cwapp/css/helper.min.css">
     <link rel="stylesheet" href="/app/cataliwos/ws-helper.cwapp/css/http-errors.min.css">
   </head>
@@ -52,8 +51,7 @@ $page_name = "404";
                 <p> <b>Server Message\</b> <br><?php echo $params["message"]; ?></p>
               </blockquote>
             <?php endif; ?>
-            <p>If you are sure there is a mixup somewhere, please <a class="bold" href="#" onclick="cwos.faderBox.url('/app/cataliwos/ws-helper.cwapp/pages/report-http-error.php',{request : '<?php echo empty($params['request']) ? "" : \addslashes($params['request']); ?>', status : '404', message : '<?php echo empty($params['message']) ? "" : \addslashes($params['message']); ?>'});"> <i class="fas fa-share-square"></i> report the errror</a>, that will help us resolve it.</p>
-            <p class="align-center"> <a href="/"> <i class="fas fa-arrow-left"></i> Go back to home page</a></p>
+            <p> <a href="/"> <i class="fas fa-arrow-left"></i> Go back to home page</a></p>
           </div>
         </div>
         <div class="grid-5-tablet hide-phone">
@@ -68,10 +66,7 @@ $page_name = "404";
     <?php include APP_ROOT . "/src/inc-footer.php"; ?>
     <!-- Required scripts -->
     <script src="/app/cataliwos/plugin.cwapp/js/jquery.min.js"></script>
-  <script src="/app/cataliwos/plugin.cwapp/js/functions.min.js"></script>
-  <script src="/app/cataliwos/plugin.cwapp/js/class-object.min.js"></script>
   <script src="/app/cataliwos/plugin.cwapp/js/theme.min.js"></script>
     <!-- project scripts -->
-    <script src="/assets/js/base.min.js" ></script>
   </body>
 </html>

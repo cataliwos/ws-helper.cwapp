@@ -1,6 +1,5 @@
 <?php
 namespace Catali;
-
 use TymFrontiers\InstanceError,
     TymFrontiers\Generic,
     TymFrontiers\Data,
@@ -335,19 +334,19 @@ function checkws () {
 // Generic
 function client_query (string $path, array $query_param = [], string $type = "POST", null|API\DevApp $app = null):object|null {
   if (!$app) {
-    $app = get_serverapp (get_constant("PRJ_SERVER_NAME"), get_constant("API_APP_NAME"));
+    $app = \api_appcred();
   }
   $types = [
-    "GET" => HTTP\Client::GET,
-    "POST" => HTTP\Client::POST,
-    "PATCH" => HTTP\Client::PATCH,
-    "DELETE" => HTTP\Client::DELETE
+    "GET" => Client::GET,
+    "POST" => Client::POST,
+    "PATCH" => Client::PATCH,
+    "DELETE" => Client::DELETE
   ];
   $type = \array_key_exists($type, $types) ? $type : $types['GET'];
   $request_cred = API\AuthHeader::generate($app);
   $state_code = "0.0";
   $status_msg = "No request performed";
-  $rest = new HTTP\Client($type, $path, $query_param, $request_cred, [
+  $rest = new Client($type, $path, $query_param, $request_cred, [
       "data_type" => "json",
       "raw_param" => "json"
     ]);
