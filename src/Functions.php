@@ -213,6 +213,7 @@ function wsinfo (string $wsid = "", int $id_type = WSID_WSCODE):object|null {
       "description" => $found->description,
       "keywords" => \explode(",", $found->keywords),
       "brand_color" => (object)[
+        "name" => $found->brand_color,
         "bg" => $color_theme[$found->brand_color]["hexcode"],
         "fg" => $color_theme[$found->brand_color]["color"]
       ],
