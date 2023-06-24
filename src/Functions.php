@@ -95,6 +95,47 @@ function auth_errors (API\Authentication $auth, string $message, string $errname
   $out_errors["Status"] = "1" . (\count($out_errors) - 1);
   return $out_errors;
 }
+function get_navgroup (string $group_name):array {
+  global $session;
+  $return_navs = [];
+  $nav_file = get_constant("PRJ_LIBRARY") . "/navigation.json";
+  if (\file_exists($nav_file)) {
+    $navs = \file_get_contents($nav_file);
+    if ($navs && $navs = \json_decode($navs)) {
+      if (!empty($navs->$group_name)) {
+        $ws = ws_info();
+        $replace = [
+          "%{ws-name}" => $ws->name,
+          "%{ws-type}" => $ws->type->name,
+          "%{ws-type-title}" => $ws->type->title,
+          "%{ws-category}" => $ws->category->name,
+          "%{ws-category-title}" => $ws->category->title,
+          "%{ws-subcategory}" => $ws->subcategory->name,
+          "%{ws-subcategory-title}" => $ws->subcategory->title,
+        ];
+        foreach ($navs->$group_name->links as $nav) {
+          if (
+            ((bool)$nav->strict_access && $nav->access_rank == $session->access_rank())
+            || (!(bool)$nav->strict_access && $nav->access_rank <= $session->access_rank())
+          ) {
+            // $nav->path = $path;
+            unset($nav->strict_access);
+            unset($nav->access_rank);
+            foreach ($nav as $prop => $val) {
+              if (!empty($val)) {
+                foreach ($replace as $regex => $value) {
+                  $nav->$prop = \str_replace($regex, $value, $nav->$prop);
+                }
+              }
+            }
+            $return_navs[] = $nav;
+          }
+        }
+      }
+    }
+  }
+  return $return_navs;
+}
 function setup_page(string $page_name, string $page_group = "base", bool $show_dnav = true, int $dnav_ini_top_pos=0, string $dnav_stick_on='#page-head', bool $cartbot = false, string $cartbotCb = "", string $dnav_clear_elem = '#main-content', string $dnav_pos = "affix"){
   $set = "<input ";
   $set .=   "type='hidden' ";
@@ -142,7 +183,7 @@ function require_login (bool $redirect = true, string $rd_path = "/helper/user/l
   }
 }
 // Web Store functions
-function wsinfo (string $wsid = "", int $id_type = WSID_WSCODE):object|null {
+function ws_info (string $wsid = "", int $id_type = WSID_WSCODE):object|null {
   if (empty($wsid)) {
     $wsid = get_constant("PRJ_WSCODE");
     $id_type = WSID_WSCODE;
@@ -188,7 +229,6 @@ function wsinfo (string $wsid = "", int $id_type = WSID_WSCODE):object|null {
                 LIMIT 1")
   ) {
     $found = $found[0];
-    $conn->closeConnection();
     return (object) [
       "wscode" => $found->code,
       "published" => (bool)$found->published,
@@ -235,7 +275,7 @@ function wsinfo (string $wsid = "", int $id_type = WSID_WSCODE):object|null {
   }
   return null;
 }
-function wsowner (string $wsid = "", int $id_type = WSID_WSCODE):object|null {
+function ws_owner (string $wsid = "", int $id_type = WSID_WSCODE):object|null {
   if (empty($wsid)) {
     $wsid = get_constant("PRJ_WSCODE");
     $id_type = WSID_WSCODE;
@@ -282,7 +322,6 @@ function wsowner (string $wsid = "", int $id_type = WSID_WSCODE):object|null {
                 )
                 LIMIT 1")) {
     $user = $user[0];
-    $conn->closeConnection();
 
     return (object) [
       "wscode" => $user->code,
@@ -318,11 +357,11 @@ function checkws () {
   // check every 14 minutes
   $ck_name = "_wsinfstat";
   if (!isset($_COOKIE[$ck_name])) {
-    $wsowner = wsowner();
+    $wsowner = ws_owner();
     if (!$wsowner || \in_array($wsowner->status, ["BANNED", "SUSPENDED", "DISABLED"])) {
       Header::badRequest(true, "This web store cannot be viewed at this time. If you are the owner; kindly contact admin/support.");
     }
-    $wsinfo = wsinfo();
+    $wsinfo = ws_info();
     if (!$wsinfo || \in_array($wsinfo->status, ["BANNED", "SUSPENDED", "DISABLED"])) {
       Header::badRequest(true, "WS: This web store cannot be viewed at this time. If you are the owner; kindly contact admin/support.");
     }
@@ -330,6 +369,66 @@ function checkws () {
     \setcookie($ck_name, 1, \strtotime("+14 Minutes"), "/", get_constant("PRJ_DOMAIN"), false, true);
   }
 
+}
+function ws_social (string $wscode = ""):null|array {
+  if (!$wscode) $wscode = get_constant("PRJ_WSCODE");
+  $conn = \query_conn(get_constant("PRJ_SERVER_NAME"));
+  if ($found = (new MultiForm(get_database("enterprise"), "ws_social", "id", $conn))->findBySql("SELECT * FROM :db:.:tbl: WHERE ws = '{$conn->escapeValue($wscode)}'")) {
+    $social_conn = [];
+    foreach ($found as $f) {
+      $social_conn[$f->type] = (object)[
+        "handle" => $f->handle,
+        "is_business" => (bool)$f->is_corp
+      ];
+    }
+    return $social_conn;
+  }
+  return null;
+}
+function ws_contact (string $wscode = ""):null|object {
+  if (!$wscode) $wscode = get_constant("PRJ_WSCODE");
+  $conn = \query_conn(get_constant("PRJ_SERVER_NAME"));
+  $db_name = get_database("enterprise");
+  $data_db = get_database("data");
+  if ($found = (new MultiForm($db_name, "ws_contact", "ws", $conn))
+    ->findBySql("SELECT wsc.email, wsc.phone, wsc.country_code, wsc.zip_code, wsc.landmark, wsc.street, wsc.apartment,
+                        c.`name` AS country,
+                        st.`name`AS 'state',
+                        ci.`name` AS city,
+                        lga.`name` AS lga
+                FROM :db:.:tbl: AS wsc
+                LEFT JOIN `{$data_db}`.countries  AS c    ON c.`code`   = wsc.country_code
+                LEFT JOIN `{$data_db}`.states     AS st   ON st.`code`  = wsc.state_code
+                LEFT JOIN `{$data_db}`.cities     AS ci   ON ci.`code`  = wsc.city_code
+                LEFT JOIN `{$data_db}`.lgas       AS lga  ON lga.`code` = wsc.lga_code
+                WHERE ws = '{$conn->escapeValue($wscode)}'
+                LIMIT 1")
+  ) {
+    return (object)[
+      "email" => $found[0]->email,
+      "phone" => $found[0]->phone,
+      "country_code" => $found[0]->country_code,
+      "zip_code" => $found[0]->zip_code,
+      "landmark" => $found[0]->landmark,
+      "street" => $found[0]->street,
+      "apartment" => $found[0]->apartment,
+      "country" => $found[0]->country,
+      "state" => $found[0]->state,
+      "city" => $found[0]->city,
+      "lga" => $found[0]->lga,
+      "address" => \implode(", ", [
+        $found[0]->apartment,
+        $found[0]->street,
+        PHP_EOL . $found[0]->landmark,
+        $found[0]->city . (empty($found[0]->zip_code) ? "" : " - {$found[0]->zip_code}"),
+        PHP_EOL . \implode(", ", [
+          $found[0]->state,
+          $found[0]->country
+        ])
+      ])
+    ];
+  } 
+  return null;
 }
 
 // Generic
