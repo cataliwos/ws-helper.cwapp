@@ -472,3 +472,114 @@ function client_query (string $path, array $query_param = [], string $type = "PO
   }
   return null;
 }
+function add_to_cart (string $offer, int $quantity):bool|int {
+  if ($offer && $quantity) {
+    global $session;
+    $conn = \query_conn();
+    $cookie_name = '_wscartusr';
+    $db_name = get_database("base");
+    $ws = get_constant("PRJ_WSCODE");  
+    $user = !empty($_COOKIE[$cookie_name]) ? $_COOKIE[$cookie_name] : $session->name;
+    if ($session->isLoggedIn() && $user !== $session->name) {
+      // update cart register
+      $conn->query("UPDATE `{$db_name}`.`shopping_cart` SET `user` = '{$conn->escapeValue($session->name)}' WHERE `user` = '{$user}'");
+      destroy_cookie($cookie_name);
+      $user = $session->name;
+    }
+    $is_new = true;
+    if ($cart = (new MultiForm($db_name, "shopping_cart", "id", $conn))
+      ->findBySql("SELECT * 
+                  FROM :db:.:tbl: 
+                  WHERE `ws` = '{$conn->escapeValue($ws)}'
+                  AND `user` = '{$conn->escapeValue($user)}'
+                  AND `offer` = '{$conn->escapeValue($offer)}'
+                  LIMIT 1")
+    ) {
+      $is_new = false;
+      $cart = $cart[0];
+    } else {
+      $cart = new MultiForm($db_name, "shopping_cart", "id", $conn);
+    }
+    $cart->ws = $ws;
+    $cart->user = $user;
+    $cart->offer = $offer;
+    $cart->quantity = $is_new ? $quantity : ((int)$cart->quantity + $quantity);
+    $saved = $is_new ? $cart->create() : $cart->update();
+    if ($saved) {
+      if (empty($_COOKIE[$cookie_name])) \setcookie($cookie_name, $user, [
+        'expires' => \strtotime("+1 Week"),
+        'path' => '/',
+        'domain' => get_constant("PRJ_DOMAIN"),
+        'secure' => true,
+        'httponly' => true,
+        'samesite' => 'Strict'
+      ]);
+      return get_cart();
+    }
+  }
+  return false;
+}
+function get_cart ():int {
+  $conn = \query_conn();
+  global $session;
+  $cookie_name = '_wscartusr';
+  $db_name = get_database("base");
+  $ws = get_constant("PRJ_WSCODE");
+  $user = !empty($_COOKIE[$cookie_name]) ? $_COOKIE[$cookie_name] : $session->name;
+  if ($session->isLoggedIn() && $user !== $session->name) {
+    // update cart register
+    $conn->query("UPDATE `{$db_name}`.`shopping_cart` SET `user` = '{$conn->escapeValue($session->name)}' WHERE `user` = '{$user}'");
+    destroy_cookie($cookie_name);
+    $user = $session->name;
+  }
+  if ($found = (new MultiForm($db_name, "shopping_cart", "id", $conn))
+  ->findBySql("SELECT SUM(quantity) AS quantity, `user`
+                FROM :db:.:tbl:
+                WHERE ws = '{$ws}'
+                AND `user` = '{$user}'")
+  ) {
+    if (empty($_COOKIE[$cookie_name])) \setcookie($cookie_name, $found[0]->user, [
+      'expires' => \strtotime("+1 Week"),
+      'path' => '/',
+      'domain' => get_constant("PRJ_DOMAIN"),
+      'secure' => true,
+      'httponly' => true,
+      'samesite' => 'Strict'
+    ]);
+    return (int)$found[0]->quantity;
+  }
+  return 0;
+}
+function api_token (string $app_name = ""):string|false {
+  $server_name = get_constant("PRJ_SERVER_NAME");
+  if (empty($app_name)) $app_name = get_constant("API_APP_NAME");
+  $app = \api_appcred($app_name);
+  if ($cred = API\AuthHeader::generate($app)) {
+    $cred_r = [];
+    $data = new Data;
+    foreach ($cred as $key => $value) {
+      $cred_r[] = $key . TXT_VALUE_ASSIGNMENT . $value;
+    }
+    $cred = \implode(TXT_SEGMENT_SPLIT, $cred_r);
+    return $server_name . TXT_VALUE_ASSIGNMENT . $data->encodeEncrypt($cred);
+  }
+  return false;
+}
+function api_token_decode (string $token):array|null {
+  @list($server_name, $token) = \explode(TXT_VALUE_ASSIGNMENT, \html_entity_decode(\trim($token)));
+  if (!empty($server_name) && !empty($token)) {
+    if ($server_name !== get_constant("PRJ_SERVER_NAME")) return null; 
+    $server_name = \trim($server_name);
+    $token = \trim($token);
+    $data = new Data;
+    if ($token = $data->decodeDecrypt($token)) {
+      $app_token = [];
+      foreach (\explode(TXT_SEGMENT_SPLIT, \html_entity_decode($token)) as $token_r) {
+        @list($key, $value) = \explode(TXT_VALUE_ASSIGNMENT, \html_entity_decode($token_r));
+        if (!empty($key) && !empty($value)) $app_token[$key] = $value;
+      }
+      return $app_token ? $app_token : null;
+    }
+  }
+  return null;
+}
