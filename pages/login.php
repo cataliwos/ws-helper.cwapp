@@ -6,8 +6,10 @@ use TymFrontiers\HTTP\Header,
     TymFrontiers\Data;
 require_once "../.appinit.php";
 $gen = new Generic;
+$data = new Data;
 $params = $gen->requestParam([
   "rdt" =>["rdt", "url"],
+  "usr" => ["usr", "text", 5, 5120],
   "token" => ["token", "text", 5, 5120],
   "code" => ["code", "pattern", "/^252([\d]{8,12})$/"],
   "name" => ["name", "name"],
@@ -43,4 +45,8 @@ $session->login((object)[
   "access_group" => "USER",
   "access_rank" => 1
 ], $params['remember']);
+if (!empty($params['usr']) && $usr = $data->decodeDecrypt(\trim(\html_entity_decode($params['usr'])))) {
+  $db_name = \get_database("base");
+  $conn->query("UPDATE `{$db_name}`.`shopping_cart` SET `user` = '{$conn->escapeValue($session->name)}' WHERE `user` = '{$usr}'");
+}
 Header::redirect($params['rdt']);

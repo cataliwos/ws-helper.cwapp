@@ -24,4 +24,7 @@ $url = Generic::setGet("https://app.cataliws.com/ws-login/" . get_constant("PRJ_
   "rdt" => $rdt,
   "usr" => $ck_user
 ]);
+$url = Generic::setGet("https://app.cataliws.com/user/sign-up", [
+  "rdt" => $url
+]);
 Header::redirect($url);

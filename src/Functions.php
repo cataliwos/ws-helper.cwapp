@@ -45,11 +45,11 @@ function code_split (string $code, string $sep = "-") {
   }
   return null;
 }
-function destroy_cookie (string $cname) {
-  global $_COOKIE;
+function destroy_cookie (string $cname, string $path = "/", string $domain = "") {
+  // global $_COOKIE;
   if (isset($_COOKIE[$cname])) {
     unset($_COOKIE[$cname]);
-    \setcookie($cname, 0, -1, '/');
+    \setcookie($cname, FALSE, -1, $path, $domain);
     return true;
   }
   return false;
@@ -453,7 +453,6 @@ function client_query (string $path, array $query_param = [], string $type = "PO
   $status_code = $rest->statusCode();
   if ( $rest->statusCode() == 200 ) {
     $rest_body = \json_decode($rest->body());
-    // echo $rest->body();
     if (!$rest_body || !\is_object($rest_body)) {
       return (object)[
         "status" => $state_code,
@@ -475,17 +474,49 @@ function client_query (string $path, array $query_param = [], string $type = "PO
 function add_to_cart (string $offer, int $quantity):bool|int {
   if ($offer && $quantity) {
     global $session;
+    $data = new Data;
     $conn = \query_conn();
     $cookie_name = '_wscartusr';
     $db_name = get_database("base");
+    $ent_db = get_database("enterprise");
     $ws = get_constant("PRJ_WSCODE");  
-    $user = !empty($_COOKIE[$cookie_name]) ? $_COOKIE[$cookie_name] : $session->name;
-    if ($session->isLoggedIn() && $user !== $session->name) {
+    $user = !empty($_COOKIE[$cookie_name]) ? $data->decodeDecrypt($_COOKIE[$cookie_name]) : $session->name;
+    if ($session->isLoggedIn() && ($user !== $session->name && (new Validator)->pattern($user, ["pattern", "/^USER([\d],{5,})$/"]))) {
       // update cart register
       $conn->query("UPDATE `{$db_name}`.`shopping_cart` SET `user` = '{$conn->escapeValue($session->name)}' WHERE `user` = '{$user}'");
-      destroy_cookie($cookie_name);
+      \setcookie($cookie_name, FALSE, [
+        'expires' => \time() - 3600, 
+        'path' => '/', 
+        'domain' => get_constant("PRJ_DOMAIN"),
+        'secure' => true,
+        'httponly' => true,
+        'samesite' => 'Strict'
+      ]);
+      if (isset($_COOKIE[$cookie_name])) unset($_COOKIE[$cookie_name]);
       $user = $session->name;
     }
+    $total = get_cart() ?: 0;
+    // get stock size
+    if ($stock = (new MultiForm($ent_db, "offer_stock", "id", $conn))
+      ->findBySql("SELECT ofr.quantity,
+                          (
+                            SELECT SUM(quantity)
+                            FROM `{$db_name}`.shopping_cart
+                            WHERE offer = ofr.offer
+                            AND `user` = '{$conn->escapeValue($user)}'
+                            AND `ws` = '{$conn->escapeValue($ws)}'
+                          ) AS ordered 
+                  FROM :db:.:tbl: AS ofr
+                  WHERE ofr.offer = '{$conn->escapeValue($offer)}' 
+                  LIMIT 1")
+    ) {
+      $ordered = $stock[0]->ordered;
+      $stock = $stock[0]->quantity;
+    } else {
+      $stock = 0;
+      $ordered = 0;
+    }
+    if ($stock > 0 && $ordered >= $stock) return $total;
     $is_new = true;
     if ($cart = (new MultiForm($db_name, "shopping_cart", "id", $conn))
       ->findBySql("SELECT * 
@@ -506,15 +537,17 @@ function add_to_cart (string $offer, int $quantity):bool|int {
     $cart->quantity = $is_new ? $quantity : ((int)$cart->quantity + $quantity);
     $saved = $is_new ? $cart->create() : $cart->update();
     if ($saved) {
-      if (empty($_COOKIE[$cookie_name])) \setcookie($cookie_name, $user, [
-        'expires' => \strtotime("+1 Week"),
-        'path' => '/',
-        'domain' => get_constant("PRJ_DOMAIN"),
-        'secure' => true,
-        'httponly' => true,
-        'samesite' => 'Strict'
-      ]);
-      return get_cart();
+      if (empty($_COOKIE[$cookie_name])) {
+        \setcookie($cookie_name, $data->encodeEncrypt($user), [
+          'expires' => \strtotime("+1 Week"), 
+          'path' => '/', 
+          'domain' => get_constant("PRJ_DOMAIN"),
+          'secure' => true,
+          'httponly' => true,
+          'samesite' => 'Strict'
+        ]);
+      }
+      return $total + 1;
     }
   }
   return false;
@@ -525,27 +558,36 @@ function get_cart ():int {
   $cookie_name = '_wscartusr';
   $db_name = get_database("base");
   $ws = get_constant("PRJ_WSCODE");
-  $user = !empty($_COOKIE[$cookie_name]) ? $_COOKIE[$cookie_name] : $session->name;
-  if ($session->isLoggedIn() && $user !== $session->name) {
+  $data = new Data;
+  $user = !empty($_COOKIE[$cookie_name]) ? $data->decodeDecrypt($_COOKIE[$cookie_name]) : $session->name;
+  if (!$user) $user = $session->name;
+  if ($session->isLoggedIn() && ($user !== $session->name && (new Validator)->pattern($user, ["pattern", "/^USER([\d],{5,})$/"]))) {
     // update cart register
     $conn->query("UPDATE `{$db_name}`.`shopping_cart` SET `user` = '{$conn->escapeValue($session->name)}' WHERE `user` = '{$user}'");
-    destroy_cookie($cookie_name);
-    $user = $session->name;
-  }
-  if ($found = (new MultiForm($db_name, "shopping_cart", "id", $conn))
-  ->findBySql("SELECT SUM(quantity) AS quantity, `user`
-                FROM :db:.:tbl:
-                WHERE ws = '{$ws}'
-                AND `user` = '{$user}'")
-  ) {
-    if (empty($_COOKIE[$cookie_name])) \setcookie($cookie_name, $found[0]->user, [
-      'expires' => \strtotime("+1 Week"),
-      'path' => '/',
+    // delete cookie
+    \setcookie($cookie_name, FALSE, [
+      'expires' => \time() - 3600, 
+      'path' => '/', 
       'domain' => get_constant("PRJ_DOMAIN"),
       'secure' => true,
       'httponly' => true,
       'samesite' => 'Strict'
     ]);
+    if (isset($_COOKIE[$cookie_name])) unset($_COOKIE[$cookie_name]);
+    $user = $session->name;
+  }
+  $found = (new MultiForm($db_name, "shopping_cart", "id", $conn))->findBySql("SELECT SUM(quantity) AS quantity, `user` FROM :db:.:tbl: WHERE ws = '{$ws}' AND `user` = '{$user}'");
+  if ($found && !empty($found[0]->quantity)) {
+    if (empty($_COOKIE[$cookie_name])) {
+      \setcookie($cookie_name, $data->encodeEncrypt($user), [
+        'expires' => \strtotime("+1 Week"), 
+        'path' => '/', 
+        'domain' => get_constant("PRJ_DOMAIN"),
+        'secure' => true,
+        'httponly' => true,
+        'samesite' => 'Strict'
+      ]);
+    }
     return (int)$found[0]->quantity;
   }
   return 0;
@@ -580,6 +622,132 @@ function api_token_decode (string $token):array|null {
       }
       return $app_token ? $app_token : null;
     }
+  }
+  return null;
+}
+function setting_get_key (string $key):null|string {
+  $domain = get_constant("PRJ_BASE_DOMAIN");
+  $dev_mode = setting_get_value("SYSTEM", "API.ENV-DEV-MODE", $domain);
+  if ($dev_mode == "ON") { // dev mode is on
+    return \str_replace(["LIVE.", "TEST."], "TEST.", $key);
+  } else {
+    return \str_replace(["LIVE.", "TEST."], "LIVE.", $key);
+  }
+  return $key;
+}
+function setting_get_value (string $user, string $key, $conn = false) {
+  $domain = get_constant("PRJ_BASE_DOMAIN");
+  $server_name = get_constant("PRJ_SERVER_NAME");
+  if (!$db_name = get_database("base")) throw new \Exception("Database not found for domain [{$domain}] settings.", 1);
+
+  if (!$conn || !$conn instanceof MySQLDatabase || $conn->getServer() !== get_dbserver($server_name)) $conn = query_conn($server_name);
+  $user = $conn->escapeValue("{$domain}.{$user}");
+  
+  $found = (new MultiForm($db_name, "settings", "id", $conn))
+    ->findBySql("SELECT sval FROM :db:.:tbl: WHERE user='{$user}' AND skey='{$conn->escapeValue($key)}' LIMIT 1");
+  if ($found) {
+    $data = new Data;
+    try {
+      if (@ !$value = $data->decodeDecrypt($found[0]->sval)) $value = $found[0]->sval;
+    } catch (\Throwable $th) {
+      //throw $th;
+    }
+  }
+  return $found ? $value : null;
+}
+function get_payment_methods (string $currency):null|object {
+  $gateways = [
+    "NGN" => [
+      "FLUTTERWAVE" => (object)[
+        "title" => "Flutterwave",
+        "name" => "FLUTTERWAVE",
+        "banner" => "/helper/img/ngn-powered-by-flutterwave.png",
+        "website" => "https://flutterwave.com",
+        "methods" => [
+          "card" => "Debit/Credit card",
+          "account" => "Bank account (direct debit)",
+          "banktransfer" => "Bank transfer",
+          "nqr" => "QR payment",
+          "ussd" => "USSD"
+        ],
+      ],
+      "PAYSTACK" => (object)[
+        "title" => "Paystack",
+        "name" => "PAYSTACK",
+        "banner" => "/helper/img/ngn-powered-by-paystack.png",
+        "website" => "https://paystack.com",
+        "methods" => [
+          "card" => "Debit/Credit Card",
+          "bank" => "Bank Account (direct debit)",
+          "bank_transfer" => "Bank Transfer",
+          "mobile_money" => "Mobile Money",
+          "qr" => "QR Payment",
+          "ussd" => "USSD"
+        ],
+      ],
+      "INTERSWITCH" => (object)[
+        "title" => "Interswitch",
+        "name" => "INTERSWITCH",
+        "banner" => "/helper/img/ngn-powered-by-interswitch.png",
+        "website" => "https://interswitch.com",
+        "methods" => [
+          "card" => "Debit/Credit Card",
+          "banktransfer" => "Bank Transfer",
+          "qr" => "QR Payment",
+          "ussd" => "USSD"
+        ],
+      ]
+    ],
+    "USD" => [
+      "FLUTTERWAVE" => (object)[
+        "title" => "Flutterwave",
+        "name" => "FLUTTERWAVE",
+        "banner" => "/helper/img/usd-powered-by-flutterwave.png",
+        "website" => "https://flutterwave.com",
+        "methods" => [
+          "card" => "Debit/Credit Card"
+        ],
+      ],
+    ],
+    "USDT" => [
+      "BINANCEPAY" => (object)[
+        "title" => "Binance Pay",
+        "name" => "BINANCEPAY",
+        "banner" => "/helper/img/powered-by-binancepay.png",
+        "website" => "https://pay.binance.com/en",
+        "methods" => [
+          "USDT" => "Tether (USDT)",
+          "BTC" => "Bitcoin (BTC)",
+          "ETH" => "Ethereum (ETH)",
+          "XRP" => "Ripple (XRP)"
+        ],
+      ],
+    ]
+  ];
+  if (\array_key_exists($currency, $gateways) && $gateway = setting_get_value("SYSTEM", "{$currency}.PAYMENT-GATEWAY")) {
+    if (\array_key_exists($gateway, $gateways[$currency])) {
+      return $gateways[$currency][$gateway];
+    }
+  }
+  return null;
+}
+function get_ws_currency ():string|null {
+  $conn = \query_conn();
+  $db_name = get_database("enterprise");
+  $ws = get_constant("PRJ_WSCODE");
+  if ($found = (new MultiForm($db_name, "ws_settings", "id", $conn))->findBySql("SELECT `value` AS currency, `encrypt`  FROM :db:.:tbl: WHERE ws = '{$conn->escapeValue($ws)}' AND `option` = 'DEFAULT-CURRENCY' LIMIT 1 ")) {
+    if ((bool)$found[0]->encrypt) $found[0]->currency = (new Data)->decodeDecrypt($found[0]->currency);
+    return $found[0]->currency;
+  }
+  return null;
+}
+function get_ws_currencies ():array|null {
+  $conn = \query_conn();
+  $db_name = get_database("enterprise");
+  $ws = get_constant("PRJ_WSCODE");
+  if ($found = (new MultiForm($db_name, "ws_settings", "id", $conn))->findBySql("SELECT `value` AS currency, `encrypt`  FROM :db:.:tbl: WHERE ws = '{$conn->escapeValue($ws)}' AND `option` = 'ACCEPTED-CURRENCY' LIMIT 1 ")) {
+    if ((bool)$found[0]->encrypt) $found[0]->currency = (new Data)->decodeDecrypt($found[0]->currency);
+    return \explode(",", $found[0]->currency);
   }
   return null;
 }
