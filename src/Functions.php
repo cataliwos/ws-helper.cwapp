@@ -592,23 +592,34 @@ function get_cart ():int {
   }
   return 0;
 }
-function api_token (string $app_name = ""):string|false {
+function api_token (string $app_name = "", array $params = []):string|false {
   $server_name = get_constant("PRJ_SERVER_NAME");
   if (empty($app_name)) $app_name = get_constant("API_APP_NAME");
   $app = \api_appcred($app_name);
-  if ($cred = API\AuthHeader::generate($app)) {
+  $algo = "sha512";
+  $hash = [];
+  if ($params) {
+    foreach ($params as $key => $value) {
+      $hash[] = $key . TXT_VALUE_ASSIGNMENT . $value;
+    }
+    $hash = \implode(TXT_SEGMENT_SPLIT, $hash);
+    $hash = \hash($algo, $hash, false);
+  }
+  if ($cred = API\AuthHeader::generate($app, $algo)) {
     $cred_r = [];
     $data = new Data;
     foreach ($cred as $key => $value) {
       $cred_r[] = $key . TXT_VALUE_ASSIGNMENT . $value;
     }
     $cred = \implode(TXT_SEGMENT_SPLIT, $cred_r);
-    return $server_name . TXT_VALUE_ASSIGNMENT . $data->encodeEncrypt($cred);
+    $return = $server_name . TXT_SEGMENT_SPLIT . $data->encodeEncrypt($cred);
+    if ($hash) $return .= (TXT_SEGMENT_SPLIT . $hash);
+    return $return;
   }
   return false;
 }
-function api_token_decode (string $token):array|null {
-  @list($server_name, $token) = \explode(TXT_VALUE_ASSIGNMENT, \html_entity_decode(\trim($token)));
+function api_token_decode (string $token, array $params = []):array|null {
+  @list($server_name, $token, $hash) = \explode(TXT_SEGMENT_SPLIT, \html_entity_decode(\trim($token)));
   if (!empty($server_name) && !empty($token)) {
     if ($server_name !== get_constant("PRJ_SERVER_NAME")) return null; 
     $server_name = \trim($server_name);
@@ -620,6 +631,15 @@ function api_token_decode (string $token):array|null {
         @list($key, $value) = \explode(TXT_VALUE_ASSIGNMENT, \html_entity_decode($token_r));
         if (!empty($key) && !empty($value)) $app_token[$key] = $value;
       }
+      if ($app_token && !empty($hash) && $params) {
+        $param_hash = [];
+        foreach ($params as $key => $value) {
+          $param_hash[] = $key . TXT_VALUE_ASSIGNMENT . $value;
+        }
+        $param_hash = \implode(TXT_SEGMENT_SPLIT, $param_hash);
+        $param_hash = \hash($app_token["Signature-Method"], $param_hash, false);
+        if ($param_hash !== $hash) return null;
+      } 
       return $app_token ? $app_token : null;
     }
   }
@@ -661,7 +681,7 @@ function get_payment_methods (string $currency):null|object {
       "FLUTTERWAVE" => (object)[
         "title" => "Flutterwave",
         "name" => "FLUTTERWAVE",
-        "banner" => "/helper/img/ngn-powered-by-flutterwave.png",
+        "banner" => "/helper/img/ngn-processed-by-flutterwave.png",
         "website" => "https://flutterwave.com",
         "methods" => [
           "card" => "Debit/Credit card",
@@ -674,7 +694,7 @@ function get_payment_methods (string $currency):null|object {
       "PAYSTACK" => (object)[
         "title" => "Paystack",
         "name" => "PAYSTACK",
-        "banner" => "/helper/img/ngn-powered-by-paystack.png",
+        "banner" => "/helper/img/ngn-processed-by-paystack.png",
         "website" => "https://paystack.com",
         "methods" => [
           "card" => "Debit/Credit Card",
@@ -688,7 +708,7 @@ function get_payment_methods (string $currency):null|object {
       "INTERSWITCH" => (object)[
         "title" => "Interswitch",
         "name" => "INTERSWITCH",
-        "banner" => "/helper/img/ngn-powered-by-interswitch.png",
+        "banner" => "/helper/img/ngn-processed-by-interswitch.png",
         "website" => "https://interswitch.com",
         "methods" => [
           "card" => "Debit/Credit Card",
@@ -702,7 +722,7 @@ function get_payment_methods (string $currency):null|object {
       "FLUTTERWAVE" => (object)[
         "title" => "Flutterwave",
         "name" => "FLUTTERWAVE",
-        "banner" => "/helper/img/usd-powered-by-flutterwave.png",
+        "banner" => "/helper/img/usd-processed-by-flutterwave.png",
         "website" => "https://flutterwave.com",
         "methods" => [
           "card" => "Debit/Credit Card"
@@ -713,7 +733,7 @@ function get_payment_methods (string $currency):null|object {
       "BINANCEPAY" => (object)[
         "title" => "Binance Pay",
         "name" => "BINANCEPAY",
-        "banner" => "/helper/img/powered-by-binancepay.png",
+        "banner" => "/helper/img/processed-by-binancepay.png",
         "website" => "https://pay.binance.com/en",
         "methods" => [
           "USDT" => "Tether (USDT)",
