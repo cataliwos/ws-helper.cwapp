@@ -66,7 +66,14 @@ $query =
           SELECT COUNT(*)
           FROM `{$ent_db}`.offers
           WHERE category = catg.name
-        ) AS use_count
+        ) AS use_count,
+        (
+          SELECT COUNT(*)
+          FROM `{$ent_db}`.offers
+          WHERE category = catg.name
+          AND ws = '{$conn->escapeValue($wscode)}'
+          AND `status` = 'PUBLISHED'
+        ) AS 'records'
  FROM :db:.:tbl: AS catg ";
  $join = " LEFT JOIN :db:.business_types AS tp ON tp.name = catg.type ";
 
@@ -145,6 +152,7 @@ foreach($found as $k=>$cat){
     ],
     "subs" => (int)$cat->subs,
     "useCount" => (int)$cat->use_count,
+    "records" => (int)$cat->records,
     
     "updated_date" => $cat->updated(),
     "updated" => $tym->MDY($cat->updated()),

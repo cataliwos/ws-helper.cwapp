@@ -63,7 +63,14 @@ $query =
           SELECT COUNT(*)
           FROM `{$ent_db}`.offers
           WHERE subcategory = scatg.name
-        ) AS use_count
+        ) AS use_count,
+        (
+          SELECT COUNT(*)
+          FROM `{$ent_db}`.offers
+          WHERE subcategory = scatg.name
+          AND ws = '{$conn->escapeValue($wscode)}'
+          AND `status` = 'PUBLISHED'
+        ) AS 'records'
  FROM :db:.:tbl: AS scatg ";
  $join = " LEFT JOIN :db:.offer_category AS catg ON catg.name = scatg.category ";
 
@@ -151,6 +158,7 @@ foreach($found as $k=>$cat){
     ],
     "description" => $cat->description,
     "useCount" => (int)$cat->use_count,
+    "records" => (int)$cat->records,
     
     "updated_date" => $cat->updated(),
     "updated" => $tym->MDY($cat->updated()),
