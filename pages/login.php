@@ -7,24 +7,30 @@ use TymFrontiers\HTTP\Header,
 require_once "../.appinit.php";
 $gen = new Generic;
 $data = new Data;
+$post = $_POST;
 $params = $gen->requestParam([
+  "uniqueid" => ["uniqueid", "pattern", "/^252([\d]{8,12})$/"],
+  "code" => ["code", "pattern", "/^252([\d]{8,12})$/"],
+  "access_group" => ["access_group", "username", 3, 32],
+  "access_rank" => ["access_rank", "int", 1, 0],
   "rdt" =>["rdt", "url"],
   "usr" => ["usr", "text", 5, 5120],
-  "token" => ["token", "text", 5, 5120],
-  "code" => ["code", "pattern", "/^252([\d]{8,12})$/"],
+  "token" => ["token", "text", 5, 10240],
   "name" => ["name", "name"],
   "surname" => ["surname", "name"],
   "status" => ["status", "username", 3, 32, [], "UPPER", ["-"]],
   "avatar" => ["avatar", "url"],
   "country_code" => ["country_code", "username", 2, 2],
   "remember" => ["remember", "int"]
-], $_POST, ["token", "code", "name", "surname", "country_code", "avatar"]);
+  ], $post, ["token", "code", "name", "surname", "country_code", "avatar"]);
+
 if (!$params) Header::badRequest(true);
 $rdt = !empty($params['rdt']) ? $params['rdt'] : WHOST;
-$params['uniqueid'] = $params['code'];
+$token_code = $params['token'];
+unset($params['token']);
 if ($session->isLoggedIn()) Header::redirect($rdt);
 // validate token
-$token = api_token_decode(\html_entity_decode($params['token']));
+$token = api_token_decode(\html_entity_decode(\trim($token_code)), $params);
 if (!$token) Header::badRequest(true);
 $conn = \query_conn();
 $auth = new Authentication ((!empty($api_sign_patterns) ? $api_sign_patterns : []), "", 0, false, $conn, $token);
