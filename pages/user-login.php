@@ -20,7 +20,7 @@ if (!empty($_COOKIE["_wscartusr"]) && $ck_user = $data->decodeDecrypt($_COOKIE["
 } else {
   $ck_user = "";
 }
-$url = Generic::setGet("https://app.cataliws.com/ws-login/" . get_constant("PRJ_DOMAIN"), [
+$url = Generic::setGet("https://app.cataliws.com/ws/" . get_constant("PRJ_DOMAIN") . "/login", [
   "rdt" => $rdt,
   "usr" => $ck_user
 ]);

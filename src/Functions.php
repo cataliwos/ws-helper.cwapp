@@ -430,9 +430,51 @@ function ws_contact (string $wscode = ""):null|object {
   } 
   return null;
 }
+function ws_email_replace (array $props):array {
+  $patterns = [
+    "wsbg-color" => "%{wsbg-color}",
+    "wsfg-color" => "%{wsfg-color}",
+    "ws-website" => "%{ws-website}",
+    "ws-domain" => "%{ws-domain}",
+    "ws-name" => "%{ws-name}",
+    "ws-address" => "%{ws-address}",
+    "ws-email" => "%{ws-email}",
+    "ws-phone" => "%{ws-phone}",
+    "ws-phone-local" => "%{ws-phone-local}"
+  ];
+  $pattern_prop = [];
+  foreach ($patterns as $key => $pattern) {
+    $pattern_prop[$key] = [
+      "pattern" => $pattern,
+      "value" => empty($props[$key]) ? "" : $props[$key]
+    ];
+  }
+  return $pattern_prop;
+}
+function ws_get_invoice_vat (float $amount):null|object {
+  $conn = \query_conn();
+  $wscode = get_constant("PRJ_WSCODE");
+  $db_name = get_database("enterprise");
+  if ($found = (new MultiForm($db_name, "ws_settings", "id", $conn))
+    ->findBySql("SELECT vt.`value` AS 'type', vm.`value` AS amount
+                FROM :db:.:tbl: AS vt
+                LEFT JOIN :db:.:tbl: AS vm ON vm.`ws` = vt.`ws` AND vm.`option` = 'INVOICE.VAT-AMOUNT'
+                WHERE vt.`ws` = '{$conn->escapeValue($wscode)}'
+                AND vt.`option` = 'INVOICE.VAT-TYPE'
+                AND vt.`value` != 'OFF'
+                LIMIT 1")
+  ) {
+    return (object)[
+      "type" => $found[0]->type,
+      "amount" => (float)$found[0]->amount,
+      "value" => $found[0]->type == "FIXED" ? (float)$found[0]->amount : (float)$found[0]->amount / 100 * $amount
+    ];
+  }
+  return null;
+}
 
 // Generic
-function client_query (string $path, array $query_param = [], string $type = "POST", null|API\DevApp $app = null):object|null {
+function client_query (string $path, array $query_param = [], string $type = "POST", null|API\DevApp $app = null, string|null $search = null):object|null|array {
   if (!$app) {
     $app = \api_appcred();
   }
@@ -454,16 +496,19 @@ function client_query (string $path, array $query_param = [], string $type = "PO
   if ( $rest->statusCode() == 200 ) {
     $rest_body = \json_decode($rest->body());
     if (!$rest_body || !\is_object($rest_body)) {
-      return (object)[
-        "status" => $state_code,
-        "message" => $status_msg,
+      return $search ? null : (object)[
+        "status" => "5.1",
+        "message" => "Response misunderstood",
         "errors" => ["Error parsing response body: {$rest->body()}"]
       ];
     } else {
-      return $rest_body;
+      if ($search) {
+        return \property_exists($rest_body, $search) ? $rest_body->$search : null;
+      }
+      return $search ? null : $rest_body;
     }
   } else {
-    return (object)[
+    return $search ? null : (object)[
       "status" => "2.1",
       "message" => $status_msg,
       "errors" => ["Incomplete process. Request halted with HTTP status: {$status_code}"]
@@ -684,11 +729,11 @@ function get_payment_methods (string $currency):null|object {
         "banner" => "/helper/img/ngn-processed-by-flutterwave.png",
         "website" => "https://flutterwave.com",
         "methods" => [
-          "card" => "Debit/Credit card",
-          "account" => "Bank account (direct debit)",
-          "banktransfer" => "Bank transfer",
-          "nqr" => "QR payment",
-          "ussd" => "USSD"
+          "CARD" => "Debit/Credit card",
+          "ACCOUNT" => "Bank account (direct debit)",
+          "BANKTRANSFER" => "Bank transfer",
+          "NQR" => "QR payment",
+          "USSD" => "USSD"
         ],
       ],
       "PAYSTACK" => (object)[
@@ -697,12 +742,12 @@ function get_payment_methods (string $currency):null|object {
         "banner" => "/helper/img/ngn-processed-by-paystack.png",
         "website" => "https://paystack.com",
         "methods" => [
-          "card" => "Debit/Credit Card",
-          "bank" => "Bank Account (direct debit)",
-          "bank_transfer" => "Bank Transfer",
-          "mobile_money" => "Mobile Money",
-          "qr" => "QR Payment",
-          "ussd" => "USSD"
+          "CARD" => "Debit/Credit Card",
+          "BANK" => "Bank Account (direct debit)",
+          "BANK_TRANSFER" => "Bank Transfer",
+          "MOBILE_MONEY" => "Mobile Money",
+          "QR" => "QR Payment",
+          "USSD" => "USSD"
         ],
       ],
       "INTERSWITCH" => (object)[
@@ -711,10 +756,10 @@ function get_payment_methods (string $currency):null|object {
         "banner" => "/helper/img/ngn-processed-by-interswitch.png",
         "website" => "https://interswitch.com",
         "methods" => [
-          "card" => "Debit/Credit Card",
-          "banktransfer" => "Bank Transfer",
-          "qr" => "QR Payment",
-          "ussd" => "USSD"
+          "CARD" => "Debit/Credit Card",
+          "BANKTRANSFER" => "Bank Transfer",
+          "QR" => "QR Payment",
+          "USSD" => "USSD"
         ],
       ]
     ],
@@ -725,7 +770,7 @@ function get_payment_methods (string $currency):null|object {
         "banner" => "/helper/img/usd-processed-by-flutterwave.png",
         "website" => "https://flutterwave.com",
         "methods" => [
-          "card" => "Debit/Credit Card"
+          "CARD" => "Debit/Credit Card"
         ],
       ],
     ],
