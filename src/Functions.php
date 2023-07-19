@@ -472,6 +472,33 @@ function ws_get_invoice_vat (float $amount):null|object {
   }
   return null;
 }
+function ws_metahead (string $title = "", string $description = "", string|array $keywords = "", string $image):array {
+  $title = $title ?: get_constant("PRJ_TITLE");
+  $description = $description ?: get_constant("PRJ_DESCRIPTION");
+  $keywords = $keywords ?: get_constant("PRJ_KEYWORDS");
+  if (\is_array($keywords)) $keywords = \implode(", ", $keywords);
+  $image = $image ?: WHOST . "/resource/icon-512x512.png";
+  $image = Generic::setGet($image, ["getsize"=>"800x418"]);
+  $ws_social = ws_social();
+  $tw_handle = $ws_social && !empty($ws_social['twitter']) ? "@{$ws_social['twitter']->handle}" : "@catalimarket";
+  $meta = [
+    "<meta name=\"description\" content=\"{$description}\">",
+    "<meta name=\"keywords\" content=\"{$keywords}\">",
+    "<meta name=\"og:title\" content=\"{$title}\">",
+    "<meta name=\"og:description\" content=\"{$description}\">",
+    "<meta name=\"og:image\" content=\"{$image}\">",
+    "<meta name=\"twitter:card\" content=\"summary_large_image\">",
+    "<meta name=\"twitter:site\" content=\"{$tw_handle}\">",
+    "<meta name=\"twitter:title\" content=\"{$title}\">",
+    "<meta name=\"twitter:description\" content=\"{$description}\">",
+    "<meta name=\"twitter:creator\" content=\"@cataliws\">",
+    "<meta name=\"twitter:image\" content=\"{$image}\">",
+    "<meta name=\"author\" content=\"".get_constant("PRJ_AUTHOR")."\">",
+    "<meta name=\"creator\" content=\"".get_constant("PRJ_CREATOR")."\">",
+    "<meta name=\"publisher\" content=\"".get_constant("PRJ_PUBLISHER")."\">",
+  ];
+  return $meta;
+}
 
 // Generic
 function client_query (string $path, array $query_param = [], string $type = "POST", null|API\DevApp $app = null, string|null $search = null):object|null|array {
