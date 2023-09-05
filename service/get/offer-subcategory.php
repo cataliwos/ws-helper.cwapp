@@ -26,6 +26,7 @@ $rqp = [
   "name" => ["name","username", 3, 72, [], "LOWER", ["-", "."]],
   "ws" => ["ws","username",5,16, [], 'MIXED', ["-","."]],
   "search" => ["search","text",3,25],
+  "surfix" => ["surfix","username", 3, 72, [], "LOWER", ["-", "."]],
   "page" => ["page","int"],
   "limit" => ["limit","int"],
   "esc_author" => ["esc_author","boolean"]
@@ -46,6 +47,7 @@ if (!$params || !empty($gen->errors)) {
   exit;
 }
 if (!empty($params['ws'])) $params['ws'] = \str_replace([" ", ".", "-"], "", $params['ws']);
+if (empty($params['surfix'])) $params['surfix'] = $session->name;
 $wscode = get_constant("PRJ_WSCODE");
 $server_name = get_constant("PRJ_SERVER_NAME");
 $ent_db = \get_database("enterprise");
@@ -77,12 +79,19 @@ $query =
 $cond = (bool)$params["esc_author"] ? " WHERE 1=1 " : " WHERE (
             (scatg.`user_input` = FALSE AND scatg.`reserved` = FALSE)
             OR scatg.`author` = '{$conn->escapeValue($session->name)}'
+            OR scatg.`author` = '{$params['author']}'
           ) ";
 if (!empty($params['name'])) {
-  $cond .= " AND scatg.name = '{$conn->escapeValue($params['name'])}' ";
+  $cond .= " AND (
+    scatg.name = '{$conn->escapeValue($params['name'])}'
+    OR scatg.name = CONCAT('{$conn->escapeValue($params['name'])}', '.', '{$conn->escapeValue($params['surfix'])}')
+  ) ";
 } else {
   if (!empty($params['category'])) {
-    $cond .= " AND scatg.category = '{$conn->escapeValue($params['category'])}' ";
+    $cond .= " AND (
+      scatg.category = '{$conn->escapeValue($params['category'])}'
+      OR scatg.category = CONCAT('{$conn->escapeValue($params['category'])}', '.', '{$conn->escapeValue($params['surfix'])}')
+    ) ";
   } else {
     if (!empty($params['type'])) {
       $cond .= " AND scatg.category IN (

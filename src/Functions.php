@@ -391,7 +391,7 @@ function ws_contact (string $wscode = ""):null|object {
   $db_name = get_database("enterprise");
   $data_db = get_database("data");
   if ($found = (new MultiForm($db_name, "ws_contact", "ws", $conn))
-    ->findBySql("SELECT wsc.email, wsc.phone, wsc.country_code, wsc.zip_code, wsc.landmark, wsc.street, wsc.apartment,
+    ->findBySql("SELECT wsc.email, wsc.phone, wsc.country_code, wsc.state_code, wsc.city_code, wsc.zip_code, wsc.landmark, wsc.street, wsc.apartment,
                         c.`name` AS country,
                         st.`name`AS 'state',
                         ci.`name` AS city,
@@ -414,7 +414,9 @@ function ws_contact (string $wscode = ""):null|object {
       "apartment" => $found[0]->apartment,
       "country" => $found[0]->country,
       "state" => $found[0]->state,
+      "state_code" => $found[0]->state_code,
       "city" => $found[0]->city,
+      "city_code" => $found[0]->city_code,
       "lga" => $found[0]->lga,
       "address" => \implode(", ", [
         $found[0]->apartment,
@@ -472,7 +474,7 @@ function ws_get_invoice_vat (float $amount):null|object {
   }
   return null;
 }
-function ws_metahead (string $title = "", string $description = "", string|array $keywords = "", string $image):array {
+function ws_metahead (string $title = "", string $description = "", string|array $keywords = "", string $image = ""):array {
   $title = $title ?: get_constant("PRJ_TITLE");
   $description = $description ?: get_constant("PRJ_DESCRIPTION");
   $keywords = $keywords ?: get_constant("PRJ_KEYWORDS");
@@ -513,7 +515,7 @@ function client_query (string $path, array $query_param = [], string $type = "PO
   ];
   $type = \array_key_exists($type, $types) ? $type : $types['GET'];
   $request_cred = API\AuthHeader::generate($app);
-  $state_code = "0.0";
+  $status_code = "0.0";
   $status_msg = "No request performed";
   $rest = new Client($type, $path, $query_param, $request_cred, [
       "data_type" => "json",
@@ -820,6 +822,20 @@ function get_payment_methods (string $currency):null|object {
     if (\array_key_exists($gateway, $gateways[$currency])) {
       return $gateways[$currency][$gateway];
     }
+  }
+  return null;
+}
+function get_ws_setting (string $opt, ?string $ws = "") {
+  $conn = \query_conn();
+  $db_name = get_database("enterprise");
+  $ws = empty($ws) ? get_constant("PRJ_WSCODE") : $ws;
+  if ($found = (new MultiForm($db_name, "ws_settings", "id", $conn))->findBySql("SELECT `value` AS 'result', `encrypt`  FROM :db:.:tbl: WHERE ws = '{$conn->escapeValue($ws)}' AND `option` = '{$conn->escapeValue($opt)}' LIMIT 1 ")) {
+    if ((bool)$found[0]->encrypt) {
+      $result = (new Data)->decodeDecrypt($found[0]->result);
+    } else {
+      $result = $found[0]->result;
+    }
+    return $result;
   }
   return null;
 }

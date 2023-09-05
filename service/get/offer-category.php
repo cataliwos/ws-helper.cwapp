@@ -23,6 +23,7 @@ $gen = new Generic;
 $rqp = [
   "type" => ["type","username", 3, 72, [], "LOWER", ["-", "."]],
   "name" => ["name","username", 3, 72, [], "LOWER", ["-", "."]],
+  "surfix" => ["surfix","username", 3, 72, [], "LOWER", ["-", "."]],
   "ws" => ["ws","username",5,16, [], 'MIXED', ["-","."]],
   "search" => ["search","text",3,25],
   "page" => ["page","int"],
@@ -45,6 +46,7 @@ if (!$params || !empty($gen->errors)) {
   exit;
 }
 if (!empty($params['ws'])) $params['ws'] = \str_replace([" ", ".", "-"], "", $params['ws']);
+if (empty($params['surfix'])) $params['surfix'] = $session->name;
 $wscode = get_constant("PRJ_WSCODE");
 $server_name = get_constant("PRJ_SERVER_NAME");
 $ent_db = \get_database("enterprise");
@@ -80,12 +82,19 @@ $query =
 $cond = (bool)$params["esc_author"] ? " WHERE 1=1 " : " WHERE (
             (catg.`user_input` = FALSE AND catg.`reserved` = FALSE)
             OR catg.`author` = '{$conn->escapeValue($session->name)}'
+            OR catg.`author` = '{$params['surfix']}'
           ) ";
 if (!empty($params['name'])) {
-  $cond .= " AND catg.name = '{$conn->escapeValue($params['name'])}' ";
+  $cond .= " AND (
+    catg.name = '{$conn->escapeValue($params['name'])}'
+    OR catg.name = CONCAT('{$conn->escapeValue($params['name'])}', '.', '{$conn->escapeValue($params['surfix'])}')
+  ) ";
 } else {
   if (!empty($params['type'])) {
-    $cond .= " AND catg.type = '{$conn->escapeValue($params['type'])}' ";
+    $cond .= " AND (
+      catg.type = '{$conn->escapeValue($params['type'])}'
+      OR catg.type = CONCAT('{$conn->escapeValue($params['type'])}', '.', '{$conn->escapeValue($params['surfix'])}')
+    ) ";
   }
   if (!empty($params['ws'])) {
     $cond .= " AND catg.name IN (
