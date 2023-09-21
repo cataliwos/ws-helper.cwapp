@@ -53,7 +53,7 @@ $ent_db = \get_database("enterprise");
 $db_name = \get_database("data");
 $conn =& $database;
 $count = 0;
-$data = new MultiForm($db_name, 'offer_category','name');
+$data = new MultiForm($db_name, 'offer_categories','name');
 $data->current_page = $page = (int)$params['page'] > 0 ? (int)$params['page'] : 1;
 $query =
 "SELECT catg.name, catg.type, catg.title,
@@ -61,7 +61,7 @@ $query =
         tp.title AS type_title,
         (
           SELECT COUNT(*)
-          FROM :db:.offer_subcategory
+          FROM :db:.offer_subcategories
           WHERE category = catg.name
         ) AS subs,
         (

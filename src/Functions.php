@@ -222,8 +222,8 @@ function ws_info (string $wsid = "", int $id_type = WSID_WSCODE):object|null {
                         sct.title AS subcategory_title
                 FROM :db:.:tbl: AS ws
                 LEFT JOIN `{$data_db}`.`business_types` AS tp ON tp.`name` = ws.`type`
-                LEFT JOIN `{$data_db}`.`business_category` AS ct ON ct.`name` = ws.category
-                LEFT JOIN `{$data_db}`.`business_subcategory` AS sct ON sct.`name` = ws.subcategory
+                LEFT JOIN `{$data_db}`.`business_categories` AS ct ON ct.`name` = ws.category
+                LEFT JOIN `{$data_db}`.`business_subcategories` AS sct ON sct.`name` = ws.subcategory
                 WHERE ws.`status` NOT IN ('BANNED', 'SUSPENDED')
                 {$cnd}
                 LIMIT 1")
@@ -858,4 +858,26 @@ function get_ws_currencies ():array|null {
     return \explode(",", $found[0]->currency);
   }
   return null;
+}
+function word_singular (string $word):string {
+  $word_parts = \preg_split('/\s+/', $word);
+  $index = \count($word_parts) - 1;
+  try {
+    $inflector = \Doctrine\Inflector\InflectorFactory::create()->build();
+    $word_parts[$index] = $inflector->singularize($word_parts[$index]);
+  } catch (\Throwable $th) {
+    //throw $th;
+  }
+  return \implode(" ", $word_parts);
+}
+function word_plural (string $word):string {
+  $word_parts = \preg_split('/\s+/', $word);
+  $index = \count($word_parts) - 1;
+  try {
+    $inflector = \Doctrine\Inflector\InflectorFactory::create()->build();
+    $word_parts[$index] = $inflector->pluralize($word_parts[$index]);
+  } catch (\Throwable $th) {
+    //throw $th;
+  }
+  return \implode(" ", $word_parts);
 }

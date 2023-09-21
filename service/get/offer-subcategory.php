@@ -55,7 +55,7 @@ $db_name = \get_database("data");
 $conn =& $database;
 
 $count = 0;
-$data = new MultiForm($db_name, 'offer_subcategory','name', $conn);
+$data = new MultiForm($db_name, 'offer_subcategories','name', $conn);
 $data->current_page = $page = (int)$params['page'] > 0 ? (int)$params['page'] : 1;
 $query =
 "SELECT scatg.name, scatg.category, scatg.title,
@@ -74,7 +74,7 @@ $query =
           AND `status` = 'PUBLISHED'
         ) AS 'records'
  FROM :db:.:tbl: AS scatg ";
- $join = " LEFT JOIN :db:.offer_category AS catg ON catg.name = scatg.category ";
+ $join = " LEFT JOIN :db:.offer_categories AS catg ON catg.name = scatg.category ";
 
 $cond = (bool)$params["esc_author"] ? " WHERE 1=1 " : " WHERE (
             (scatg.`user_input` = FALSE AND scatg.`reserved` = FALSE)
@@ -96,7 +96,7 @@ if (!empty($params['name'])) {
     if (!empty($params['type'])) {
       $cond .= " AND scatg.category IN (
         SELECT `name` 
-        FROM :db:.offer_category
+        FROM :db:.offer_categories
         WHERE `type` = '{$conn->escapeValue($params['type'])}'
       ) ";
     }

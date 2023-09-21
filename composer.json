@@ -22,7 +22,8 @@
     "tymfrontiers-cdn/php-instance-error" : ">=0.1@stable",
     "tymfrontiers-cdn/php-validator" : ">=0.1@stable",
     "tymfrontiers-cdn/php-generic" : ">=0.1@stable",
-    "tymfrontiers-cdn/php-multiform" : ">=0.1@stable"
+    "tymfrontiers-cdn/php-multiform" : ">=0.1@stable",
+    "doctrine/inflector": ">=2@stable"
   },
   "require-dev": {},
   "autoload": {
