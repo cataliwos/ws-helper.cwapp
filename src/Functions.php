@@ -136,6 +136,18 @@ function get_navgroup (string $group_name):array {
   }
   return $return_navs;
 }
+function get_page (string $key = ""):null|object {
+  if (\file_exists(PRJ_ROOT . "/.pages.json")) {
+    if ($pages = \json_decode(\file_get_contents(PRJ_ROOT . "/.pages.json"))) {
+      if (!empty($key)) {
+        return empty($pages->{$key}) ? null : $pages->{$key};
+      } else {
+        return (object)$pages;
+      }
+    }
+  }
+  return null;
+}
 function setup_page(string $page_name, string $page_group = "base", bool $show_dnav = true, int $dnav_ini_top_pos=0, string $dnav_stick_on='#page-head', bool $cartbot = false, string $cartbotCb = "", string $dnav_clear_elem = '#main-content', string $dnav_pos = "affix"){
   $set = "<input ";
   $set .=   "type='hidden' ";
@@ -666,6 +678,32 @@ function get_cart ():int {
   }
   return 0;
 }
+function get_cart_package ($user):int|float {
+  $conn = \query_conn();
+  $wscode = get_constant("PRJ_WSCODE");
+  $db_name = \get_database("base");
+  $ent_db = \get_database("enterprise");
+
+  if ($found = (new MultiForm($db_name, "shopping_cart", "id", $conn))
+    ->findBySql("SELECT SUM(vt.`weight` * ct.quantity) AS 'weight', SUM((`width` * `height` * `length`) * ct.quantity) AS dc
+    FROM :db:.:tbl: AS ct
+      LEFT JOIN `{$ent_db}`.offer_variants AS vt ON vt.`code` = ct.offer
+    WHERE ct.ws = '{$wscode}'
+      AND ct.user = '{$conn->escapeValue($user)}'")
+  ) {
+    $df_w = 5;
+    $df_dc = 16400;
+    $pkg_w = (int)$found[0]->weight; // g
+    $pkg_dc = (int)$found[0]->dc; // cm
+    // calculate
+    $qw = $pkg_w > 0 ? round_up((($pkg_w / 1000)/$df_w), 2) : 1;
+    $qdc = $pkg_dc > 0 ? round_up($pkg_dc / $df_dc, 2) : 1;
+    $fq = $qw >= $qdc ? $qw : $qdc;
+    $fq = $fq >= 1 ? $fq : 1;
+    return $fq;
+  }
+  return 0;
+}
 function api_token (string $app_name = "", array $params = []):string|false {
   $server_name = get_constant("PRJ_SERVER_NAME");
   if (empty($app_name)) $app_name = get_constant("API_APP_NAME");
@@ -839,11 +877,52 @@ function get_ws_setting (string $opt, ?string $ws = "") {
   }
   return null;
 }
+function ws_config (?string $group = ""):null|array|object {
+  $conn = \query_conn();
+  $db_name = get_database("enterprise");
+  $ws = get_constant("PRJ_WSCODE");
+  $query = "SELECT `option`, `value` FROM `{$db_name}`.ws_settings WHERE ws = '{$conn->escapeValue($ws)}' ";
+  if ($group) {
+    $query .= " AND `option` LIKE '" . \strtoupper($conn->escapeValue($group)) . ".%'";
+  } if ($found = (new MultiForm($db_name, "ws_settings", "id", $conn))->findBySql($query)) {
+    $return = [];
+    foreach ($found as $opt) {
+      @list($grp, $option) = \explode(".", $opt->option, 2);
+      @ $grp = \trim(\strtolower($grp));
+      if (!empty($grp) && !empty($option)) {
+        $option = \trim(\strtolower(\str_replace(".", "",$option)));
+
+        if (\in_array($option, ["accepted-currency"])) {
+          $return[$grp][$option] = \explode(",", $opt->value);
+        } else if (\in_array($option, ["vat-amount","advance-amount", "intra-city-fee", "intra-state-fee", "inter-state-fee", "international-fee"])) {
+          $return[$grp][$option] = (float)$opt->value;
+        } else if (\in_array($option, ["intra-city-delay", "intra-state-delay", "inter-state-delay", "international-delay"])) {
+          $return[$grp][$option] = (int)$opt->value;
+        } else if (\in_array($option, ["hide-phone", "hide-address", "hide-email", "prompt"])) {
+          $return[$grp][$option] = \in_array($opt->value, ["on", "ON", "On", "Yes", "YES", "yes"]) ? true : (\in_array($opt->value, ["off", "OFF", "Off", "No", "NO", "no"]) ? false : (bool)$opt->value);
+        } else {
+          $return[$grp][$option] = $opt->value;
+        }
+      } else {
+        $option = \trim(\strtolower(\str_replace(".", "",$grp)));
+        $return[$grp][$option] = $opt->value;
+      }
+    }
+    foreach ($return as $key => $arr) {
+      $return[$key] = (object)$arr;
+    }
+    if ($group) {
+      return \array_key_exists($group, $return) ? $return[$group] : null;
+    }
+    return $return;
+  }
+  return null;
+}
 function get_ws_currency ():string|null {
   $conn = \query_conn();
   $db_name = get_database("enterprise");
   $ws = get_constant("PRJ_WSCODE");
-  if ($found = (new MultiForm($db_name, "ws_settings", "id", $conn))->findBySql("SELECT `value` AS currency, `encrypt`  FROM :db:.:tbl: WHERE ws = '{$conn->escapeValue($ws)}' AND `option` = 'DEFAULT-CURRENCY' LIMIT 1 ")) {
+  if ($found = (new MultiForm($db_name, "ws_settings", "id", $conn))->findBySql("SELECT `value` AS currency, `encrypt`  FROM :db:.:tbl: WHERE ws = '{$conn->escapeValue($ws)}' AND `option` = 'PAYMENT.DEFAULT-CURRENCY' LIMIT 1 ")) {
     if ((bool)$found[0]->encrypt) $found[0]->currency = (new Data)->decodeDecrypt($found[0]->currency);
     return $found[0]->currency;
   }
@@ -853,7 +932,7 @@ function get_ws_currencies ():array|null {
   $conn = \query_conn();
   $db_name = get_database("enterprise");
   $ws = get_constant("PRJ_WSCODE");
-  if ($found = (new MultiForm($db_name, "ws_settings", "id", $conn))->findBySql("SELECT `value` AS currency, `encrypt`  FROM :db:.:tbl: WHERE ws = '{$conn->escapeValue($ws)}' AND `option` = 'ACCEPTED-CURRENCY' LIMIT 1 ")) {
+  if ($found = (new MultiForm($db_name, "ws_settings", "id", $conn))->findBySql("SELECT `value` AS currency, `encrypt`  FROM :db:.:tbl: WHERE ws = '{$conn->escapeValue($ws)}' AND `option` = 'PAYMENT.ACCEPTED-CURRENCY' LIMIT 1 ")) {
     if ((bool)$found[0]->encrypt) $found[0]->currency = (new Data)->decodeDecrypt($found[0]->currency);
     return \explode(",", $found[0]->currency);
   }
@@ -880,4 +959,8 @@ function word_plural (string $word):string {
     //throw $th;
   }
   return \implode(" ", $word_parts);
+}
+function round_up ( int|float $value, int $precision = 2):int|float { 
+  $pow = \pow ( 10, $precision ); 
+  return ( \ceil ( $pow * $value ) + \ceil ( $pow * $value - \ceil ( $pow * $value ) ) ) / $pow; 
 }

@@ -112,7 +112,7 @@ foreach($found as $k=>$lga){
   $result["data"][] = [
     "code" => $lga->code,
     "name" => $lga->name,
-    "useCount" => (int)$lga->user_count
+    "useCount" => 0
   ];
 }
 $result["message"] = "Request completed.";

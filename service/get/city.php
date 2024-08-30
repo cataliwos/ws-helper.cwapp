@@ -112,7 +112,7 @@ foreach($found as $k=>$cii){
   $result["data"][] = [
     "code" => $cii->code,
     "name" => $cii->name,
-    "useCount" => (int)$cii->user_count
+    "useCount" => 0
   ];
 }
 $result["message"] = "Request completed.";

@@ -248,7 +248,10 @@ $priority_titles = [
 ];
 // color theme
 $color_theme = [
-  "native"           => ["title" => "Native (Catali)", "hexcode" => "#1976D2", "color" => "#ffffff"],
+  "catali-blue"      => ["title" => "Catali Blue", "hexcode" => "#1976D2", "color" => "#ffffff"],
+  "catali-purple"    => ["title" => "Catali Purple", "hexcode" => "#9c27b0", "color" => "#ffffff"],
+  "catali-amber"     => ["title" => "Catali Amber", "hexcode" => "#FFB700", "color" => "#000"],
+
   "gold"             => ["title" => "Gold", "hexcode" => "#EBBD63", "color" => "#000"],
   "rose-gold"        => ["title" => "Rose Gold", "hexcode" => "#FDD09F", "color" => "#000"],
   "red"              => ["title" => "Red", "hexcode" => "#F44336", "color" => "#ffffff"],

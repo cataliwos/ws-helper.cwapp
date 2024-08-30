@@ -124,7 +124,7 @@ foreach($found as $k=>$cntr){
     "numberCode" => $cntr->number_code,
     "phoneCode" => $cntr->phone_code,
     "states" => (int)$cntr->states,
-    "useCount" => (int)$cntr->use_count
+    "useCount" => 0
   ];
 }
 $result["message"] = "Request completed.";

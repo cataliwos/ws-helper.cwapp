@@ -118,7 +118,7 @@ foreach($found as $k=>$stt){
     "code" => $stt->code,
     "name" => $stt->name,
     "cities" => (int)$stt->cities,
-    "useCount" => (int)$stt->user_count
+    "useCount" => 0
   ];
 }
 $result["message"] = "Request completed.";
