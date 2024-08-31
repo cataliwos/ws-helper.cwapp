@@ -243,6 +243,7 @@ function ws_info (string $wsid = "", int $id_type = WSID_WSCODE):object|null {
     $found = $found[0];
     return (object) [
       "wscode" => $found->code,
+      "code" => $found->code,
       "published" => (bool)$found->published,
       "status" => $found->status,
       "domain" => $found->domain,
