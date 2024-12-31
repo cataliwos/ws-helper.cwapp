@@ -798,7 +798,7 @@ function get_payment_methods (string $currency):null|object {
         "website" => "https://flutterwave.com",
         "methods" => [
           "CARD" => "Debit/Credit card",
-          "ACCOUNT" => "Bank account (direct debit)",
+          // "ACCOUNT" => "Bank account (direct debit)",
           "BANKTRANSFER" => "Bank transfer",
           "NQR" => "QR payment",
           "USSD" => "USSD"
@@ -811,7 +811,7 @@ function get_payment_methods (string $currency):null|object {
         "website" => "https://paystack.com",
         "methods" => [
           "CARD" => "Debit/Credit Card",
-          "BANK" => "Bank Account (direct debit)",
+          // "BANK" => "Bank Account (direct debit)",
           "BANK_TRANSFER" => "Bank Transfer",
           "MOBILE_MONEY" => "Mobile Money",
           "QR" => "QR Payment",
