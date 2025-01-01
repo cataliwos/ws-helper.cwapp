@@ -919,6 +919,29 @@ function ws_config (?string $group = ""):null|array|object {
   }
   return null;
 }
+function theme_config (?string $option = ""):null|string|object {
+  $conn = \query_conn();
+  $db_name = get_database("base");
+  $ws = get_constant("PRJ_WSCODE");
+  $theme_name = get_constant("PRJ_THEME");
+  if (\count(\explode("/", $theme_name, 2)) !== 2) throw new \Exception("Invalid Theme config.", 1);
+  $theme_name = \explode("/", $theme_name, 2)[1];
+  $query = "SELECT `skey`, `sval` FROM `{$db_name}`.theme_settings WHERE ws = '{$conn->escapeValue($ws)}' AND `theme` = '{$conn->escapeValue($theme_name)}' ";
+  if (!empty($option)) {
+    $query .= " AND `skey` = '{$conn->escapeValue($option)}' ";
+  } if ($found = (new MultiForm($db_name, "theme_settings", "id", $conn))->findBySql($query)) {
+    $return = [];
+    foreach ($found as $cnf) {
+      $return[$cnf->skey] = $cnf->sval;
+    }
+    if (!empty($option)) {
+      return !empty($return[$option]) ? $return[$option] : null;
+    } else {
+      return (object)$return;
+    }
+  }
+  return null;
+}
 function get_ws_currency ():string|null {
   $conn = \query_conn();
   $db_name = get_database("enterprise");
