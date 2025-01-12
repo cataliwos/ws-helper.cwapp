@@ -942,6 +942,35 @@ function theme_config (?string $option = ""):null|string|object {
   }
   return null;
 }
+function get_wscode (?string $wsid = ""):null|string {
+  if ($wsid) {
+    $vld = new Validator;
+    if ($id = $vld->pattern($wsid, ["code", "pattern", "/^(289([\d\-\s]{8,15}))$/"])) {
+      return \str_replace(["-", " "], "", $id);
+    } else if ($id = $vld->pattern($wsid, ["domain", "pattern", "/^([a-z0-9\-\.]+\.[a-z]{2,})$/"])) {
+      $conn = \query_conn();
+      $db_name = get_database("enterprise");
+      if ($found = (new MultiForm($db_name, "ws", "code", $conn))->findBySql("SELECT `code` FROM :db:.:tbl: WHERE domain = '{$conn->escapeValue($id)}' OR df_domain = '{$conn->escapeValue($id)}' LIMIT 1")) {
+        return $found[0]->code;
+      } else {
+        return null;
+      }
+    } else {
+      return null;
+    }
+  }
+  return get_constant("PRJ_WSCODE");
+}
+function ws_premium (?string $wsid = ""):null|object {
+  $wscode = get_wscode($wsid);
+  $path = "https://ws." . get_constant("PRJ_BASE_DOMAIN") . "/ws-service/get/ws-premium";
+  if ($premium = client_query($path, [
+    "ws" => $wscode
+  ], "GET", api_appcred(get_constant("API_APP_NAME")), "data")) {
+    return $premium;
+  }
+  return null;
+}
 function get_ws_currency ():string|null {
   $conn = \query_conn();
   $db_name = get_database("enterprise");
