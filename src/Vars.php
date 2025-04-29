@@ -1,18 +1,18 @@
 <?php
 namespace Catali;
 global $access_ranks,
-       $reverse_access_ranks,
-       $email_replace_pattern,
-       $file_upload_groups,
-       $api_sign_patterns,
-       $mysql_dt_string,
-       $mysql_date_string,
-       $renewal_terms,
-       $renewal_options,
-       $color_theme,
-       $recur_terms,
-       $priority_titles,
-       $currency_symbols;
+  $reverse_access_ranks,
+  $email_replace_pattern,
+  $file_upload_groups,
+  $api_sign_patterns,
+  $mysql_dt_string,
+  $mysql_date_string,
+  $renewal_terms,
+  $renewal_options,
+  $color_theme,
+  $recur_terms,
+  $priority_titles,
+$currency_symbols;
 
 $access_ranks = [
   "GUEST"       => 0,
@@ -254,11 +254,13 @@ $color_theme = [
 
   "gold"             => ["title" => "Gold", "hexcode" => "#EBBD63", "color" => "#000"],
   "rose-gold"        => ["title" => "Rose Gold", "hexcode" => "#FDD09F", "color" => "#000"],
+  "black-gold"       => ["title" => "Black-Golden", "hexcode" => "#000", "color" => "#EBBD63"],
   "red"              => ["title" => "Red", "hexcode" => "#F44336", "color" => "#ffffff"],
   "blue"             => ["title" => "Blue", "hexcode" => "#2196F3", "color" => "#ffffff"],
   "light-blue"       => ["title" => "Light Blue", "hexcode" => "#03A9F4", "color" => "#ffffff"],
   "midnight-blue"    => ["title" => "Midnight Blue", "hexcode" => "#2c3e50", "color" => "#ffffff"],
   "blue-grey"        => ["title" => "Blue Grey", "hexcode" => "#607D8B", "color" => "#ffffff"],
+  "navy-blue"        => ["title" => "Navy Blue", "hexcode" => "#000066", "color" => "#ffffff"],
   "green"            => ["title" => "Green", "hexcode" => "#4CAF50", "color" => "#ffffff"],
   "nigeria-green"    => ["title" => "Nigeria Green", "hexcode" => "#008751", "color" => "#ffffff"],
   "light-green"      => ["title" => "Light Green", "hexcode" => "#8BC34A", "color" => "#000"],
