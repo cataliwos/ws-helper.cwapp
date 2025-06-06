@@ -11,6 +11,7 @@ function otpResent(resp) {
     minuteTimer(12 * 60,"#cnt-timer", enblResend);
   }
 }
+
 const helpr_rsc = (path, callback, rq = {}, opt = {type : "GET", data_type : "json", processData:true}, errorcb) => {
   let dfOpt = {
     type: "GET",
