@@ -558,7 +558,7 @@ function client_query (string $path, array $query_param = [], string $type = "PO
   }
   return null;
 }
-function add_to_cart (string $offer, int $quantity):bool|int {
+function add_to_cart (string $offer, int $quantity, string|null $variation = '{}'):bool|int {
   if ($offer && $quantity) {
     global $session;
     $data = new Data;
@@ -622,6 +622,7 @@ function add_to_cart (string $offer, int $quantity):bool|int {
     $cart->user = $user;
     $cart->offer = $offer;
     $cart->quantity = $is_new ? $quantity : ((int)$cart->quantity + $quantity);
+    $cart->variation = $variation ? $variation : '{}';
     $saved = $is_new ? $cart->create() : $cart->update();
     if ($saved) {
       if (empty($_COOKIE[$cookie_name])) {
