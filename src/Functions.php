@@ -514,6 +514,71 @@ function ws_metahead (string $title = "", string $description = "", string|array
   ];
   return $meta;
 }
+// ws form
+function save_wsform (string $form, string $data, ?string $wsid = "", null|array $user = null):bool {
+  if (empty($wsid)) $wsid = get_constant("PRJ_WSCODE");
+  $db_user = get_dbuser(true);
+  $db_name = get_database("wsdata");
+  $ent_db = get_database("enterprise");
+  $db_server = get_dbserver();
+  $conn = new MySQLDatabase($db_server, $db_user[0], $db_user[1], $db_name, true);
+
+  if (!$form_name = (new Validator)->username($form, ["form", "username", 5, 128, [], "LOWER", ["-"]])) {
+    throw new \Exception("Invalid format for [form]", 1);
+  } 
+  // if (!$form_data = (new Validator)->script($data, ["data", "script"])) {
+  //   throw new \Exception("Invalid JSON object format given for [data]", 1);
+  // } if (\gettype(\json_decode($form_data, true)) !== "object") {
+  //   // throw new \Exception("Invalid JSON object given for [data]", 1);
+  // }
+  // find form details
+  if (!$found = (new MultiForm($db_name, "forms", "id", $conn))
+    ->findBySql("SELECT fm.id, fm.name, fm.title, fm.`data`,
+        fb.subject, fb.message,
+        ws.name,
+        wsc.email
+      FROM :db:.:tbl: AS fm
+        LEFT JOIN :db:.form_feedbacks AS fb ON fb.form = fm.id
+        LEFT JOIN `{$ent_db}`.ws AS ws ON ws.code = fm.ws
+        LEFT JOIN `{$ent_db}`.ws_contact AS wsc ON wsc.ws = fm.ws
+      WHERE fm.ws = '{$wsid}'
+        AND fm.name = '{$form_name}'
+      LIMIT 1")
+    ) {
+    throw new \Exception("Form not found!", 1);
+  }
+  $fm = $found[0];
+  if (empty($fm->data) || \gettype(\json_decode($fm->data)) !== "array") {
+    // insert blank array
+    $conn->query("UPDATE `{$db_name}`.forms SET `data` = '[]' WHERE id = {$fm->id} LIMIT 1");
+  }
+  $form_data = json_encode(\json_decode($data, true));
+  $query = "UPDATE `{$db_name}`.forms 
+    SET `data` = JSON_MERGE(`data`, '[{$form_data}]')
+    WHERE id = {$fm->id}";
+  if (!$conn->query($query)) {
+    $errors = ["Failed to save form entry"];
+    if ($more_errors = (new InstanceError($conn, true))->get("query", true)) {
+      $errors = \array_merge($errors, $more_errors);
+    }
+    throw new \Exception(\implode(PHP_EOL, $errors), 1);
+  }
+  // queue email
+  if (($user && !empty($user["email"])) && (!empty($fm->message) && !empty($fm->subject))) {
+    if (empty($user['surname'])) $user['surname'] = "";
+    // pre email    
+    $request = client_query("https://ws.". get_constant("PRJ_BASE_DOMAIN"). "/ws-service/put/send-mail", [
+      "ws" => $wsid,
+      "subject" => $fm->subject,
+      "message" => $fm->message,
+      "recipient" => $user['email'],
+      "recipient_name" => "{$user['name']} {$user['surname']}",
+      "reply_to" => "{$fm->name} <{$fm->email}>"
+    ], "POST", api_appcred(get_constant("PRJ_BASE_DOMAIN")));
+    
+  }
+  return true;
+}
 
 // Generic
 function client_query (string $path, array $query_param = [], string $type = "POST", null|API\DevApp $app = null, string|null $search = null):object|null|array {
