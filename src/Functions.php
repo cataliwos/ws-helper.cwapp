@@ -570,6 +570,7 @@ function save_wsform (string $form, string $data, ?string $wsid = "", null|array
     $request = client_query("https://ws.". get_constant("PRJ_BASE_DOMAIN"). "/ws-service/put/send-mail", [
       "ws" => $wsid,
       "subject" => $fm->subject,
+      "template" => "42926342535",
       "message" => $fm->message,
       "recipient" => $user['email'],
       "recipient_name" => "{$user['name']} {$user['surname']}",
