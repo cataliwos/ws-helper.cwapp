@@ -574,7 +574,7 @@ function save_wsform (string $form, string $data, ?string $wsid = "", null|array
       "message" => $fm->message,
       "recipient" => $user['email'],
       "recipient_name" => "{$user['name']} {$user['surname']}",
-      "reply_to" => "{$fm->name} <{$fm->email}>"
+      "reply_to" => $fm->email
     ], "POST", api_appcred(get_constant("PRJ_BASE_DOMAIN")));
     
   }
